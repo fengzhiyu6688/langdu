@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>早读/自习监测工具</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 600px;
+            width: 100%;
+            padding: 40px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
+
+        .mode-selection {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .mode-btn {
+            flex: 1;
+            padding: 20px;
+            font-size: 18px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: bold;
+            color: white;
+        }
+
+        .mode-btn.reading {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .mode-btn.study {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .mode-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .mode-btn.active {
+            transform: scale(1.05);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+        }
+
+        .status-panel {
+            background: #f7f9fc;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .status-text {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .volume-bar-container {
+            background: #e0e0e0;
+            height: 30px;
+            border-radius: 15px;
+            overflow: hidden;
+            margin-bottom: 15px;
+        }
+
+        .volume-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50, #8BC34A, #FFEB3B, #FF9800, #F44336);
+            width: 0%;
+            transition: width 0.1s;
+            border-radius: 15px;
+        }
+
+        .volume-value {
+            font-size: 18px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .settings {
+            background: #f7f9fc;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .setting-item {
+            margin-bottom: 15px;
+        }
+
+        .setting-item label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .setting-item input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #ddd;
+            outline: none;
+        }
+
+        .setting-item input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+        }
+
+        .setting-item input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+            border: none;
+        }
+
+        .threshold-value {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 14px;
+            margin-left: 10px;
+        }
+
+        .start-btn {
+            width: 100%;
+            padding: 15px;
+            font-size: 18px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: bold;
+            color: white;
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            transition: all 0.3s;
+        }
+
+        .start-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .start-btn.stop {
+            background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+        }
+
+        .status-indicator.good {
+            background: #4CAF50;
+        }
+
+        .status-indicator.warning {
+            background: #FF9800;
+        }
+
+        .status-indicator.bad {
+            background: #F44336;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .info {
+            background: #e3f2fd;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-size: 14px;
+            color: #1976D2;
+        }
+
+        .error {
+            background: #ffebee;
+            border-left: 4px solid #f44336;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-size: 14px;
+            color: #c62828;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #999;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📚 早读/自习监测工具</h1>
+        
+        <div class="mode-selection">
+            <button class="mode-btn reading active" onclick="setMode('reading')">
+                📖 早读模式
+            </button>
+            <button class="mode-btn study" onclick="setMode('study')">
+                📝 自习模式
+            </button>
+        </div>
+
+        <div class="status-panel">
+            <div class="status-text" id="statusText">
+                <span class="status-indicator good" id="statusIndicator"></span>
+                请点击开始监测
+            </div>
+            <div class="volume-value" id="volumeValue">音量: 0</div>
+            <div class="volume-bar-container">
+                <div class="volume-bar" id="volumeBar"></div>
+            </div>
+            <div class="stats" id="stats" style="display: none;">
+                <div class="stat-card">
+                    <div class="stat-label">监测时长</div>
+                    <div class="stat-value" id="duration">00:00</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">合格率</div>
+                    <div class="stat-value" id="passRate">0%</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="settings">
+            <div class="setting-item">
+                <label>
+                    音量判断阈值: 
+                    <span class="threshold-value" id="thresholdDisplay">30</span>
+                </label>
+                <input type="range" id="threshold" min="0" max="100" value="30" oninput="updateThreshold(this.value)">
+            </div>
+            <div class="setting-item">
+                <label>
+                    灵敏度: 
+                    <span class="threshold-value" id="sensitivityDisplay">中</span>
+                </label>
+                <input type="range" id="sensitivity" min="1" max="3" value="2" oninput="updateSensitivity(this.value)">
+            </div>
+        </div>
+
+        <button class="start-btn" id="startBtn" onclick="toggleMonitoring()">
+            🎤 开始监测
+        </button>
+
+        <div class="info">
+            💡 提示: 首次使用需要授权麦克风权限。早读模式检测是否朗读，自习模式检测是否安静。
+        </div>
+    </div>
+
+    <script>
+        let audioContext;
+        let analyser;
+        let microphone;
+        let javascriptNode;
+        let isMonitoring = false;
+        let currentMode = 'reading'; // 'reading' or 'study'
+        let threshold = 30;
+        let sensitivity = 2;
+        let startTime;
+        let totalChecks = 0;
+        let passChecks = 0;
+
+        const sensitivityMap = {
+            1: '低',
+            2: '中',
+            3: '高'
+        };
+
+        function setMode(mode) {
+            currentMode = mode;
+            document.querySelectorAll('.mode-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            if (mode === 'reading') {
+                document.querySelector('.mode-btn.reading').classList.add('active');
+            } else {
+                document.querySelector('.mode-btn.study').classList.add('active');
+            }
+            
+            if (isMonitoring) {
+                updateStatus();
+            }
+        }
+
+        function updateThreshold(value) {
+            threshold = parseInt(value);
+            document.getElementById('thresholdDisplay').textContent = value;
+        }
+
+        function updateSensitivity(value) {
+            sensitivity = parseInt(value);
+            document.getElementById('sensitivityDisplay').textContent = sensitivityMap[value];
+        }
+
+        async function toggleMonitoring() {
+            if (!isMonitoring) {
+                await startMonitoring();
+            } else {
+                stopMonitoring();
+            }
+        }
+
+        async function startMonitoring() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                analyser = audioContext.createAnalyser();
+                microphone = audioContext.createMediaStreamSource(stream);
+                javascriptNode = audioContext.createScriptProcessor(2048, 1, 1);
+
+                analyser.smoothingTimeConstant = 0.8;
+                analyser.fftSize = 1024;
+
+                microphone.connect(analyser);
+                analyser.connect(javascriptNode);
+                javascriptNode.connect(audioContext.destination);
+
+                javascriptNode.onaudioprocess = function() {
+                    const array = new Uint8Array(analyser.frequencyBinCount);
+                    analyser.getByteFrequencyData(array);
+                    const average = array.reduce((a, b) => a + b) / array.length;
+                    const volume = Math.round(average * (sensitivity / 2));
+                    updateVolume(volume);
+                };
+
+                isMonitoring = true;
+                startTime = Date.now();
+                totalChecks = 0;
+                passChecks = 0;
+                document.getElementById('startBtn').textContent = '⏹️ 停止监测';
+                document.getElementById('startBtn').classList.add('stop');
+                document.getElementById('stats').style.display = 'grid';
+                updateDuration();
+
+                // 移除可能存在的错误提示
+                const errorDiv = document.querySelector('.error');
+                if (errorDiv) errorDiv.remove();
+
+            } catch (error) {
+                console.error('无法访问麦克风:', error);
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'error';
+                errorDiv.textContent = '❌ 无法访问麦克风，请确保已授权麦克风权限！';
+                document.querySelector('.container').appendChild(errorDiv);
+            }
+        }
+
+        function stopMonitoring() {
+            if (microphone) {
+                microphone.disconnect();
+                analyser.disconnect();
+                javascriptNode.disconnect();
+                audioContext.close();
+            }
+            isMonitoring = false;
+            document.getElementById('startBtn').textContent = '🎤 开始监测';
+            document.getElementById('startBtn').classList.remove('stop');
+            document.getElementById('statusText').innerHTML = '<span class="status-indicator good"></span>监测已停止';
+            document.getElementById('stats').style.display = 'none';
+        }
+
+        function updateVolume(volume) {
+            document.getElementById('volumeValue').textContent = `音量: ${volume}`;
+            document.getElementById('volumeBar').style.width = Math.min(volume, 100) + '%';
+            
+            totalChecks++;
+            updateStatus(volume);
+            updateStats();
+        }
+
+        function updateStatus(volume = 0) {
+            const statusText = document.getElementById('statusText');
+            const indicator = document.getElementById('statusIndicator');
+            
+            if (currentMode === 'reading') {
+                // 早读模式：需要大声朗读
+                if (volume >= threshold) {
+                    statusText.innerHTML = '<span class="status-indicator good" id="statusIndicator"></span>✅ 正在朗读，很好！';
+                    indicator.className = 'status-indicator good';
+                    passChecks++;
+                } else if (volume >= threshold * 0.6) {
+                    statusText.innerHTML = '<span class="status-indicator warning" id="statusIndicator"></span>⚠️ 声音太小了！';
+                    indicator.className = 'status-indicator warning';
+                } else {
+                    statusText.innerHTML = '<span class="status-indicator bad" id="statusIndicator"></span>❌ 没有检测到朗读！';
+                    indicator.className = 'status-indicator bad';
+                }
+            } else {
+                // 自习模式：需要保持安静
+                if (volume < threshold) {
+                    statusText.innerHTML = '<span class="status-indicator good" id="statusIndicator"></span>✅ 保持安静，很好！';
+                    indicator.className = 'status-indicator good';
+                    passChecks++;
+                } else if (volume < threshold * 1.5) {
+                    statusText.innerHTML = '<span class="status-indicator warning" id="statusIndicator"></span>⚠️ 有点吵了！';
+                    indicator.className = 'status-indicator warning';
+                } else {
+                    statusText.innerHTML = '<span class="status-indicator bad" id="statusIndicator"></span>❌ 太吵了，请安静！';
+                    indicator.className = 'status-indicator bad';
+                }
+            }
+        }
+
+        function updateDuration() {
+            if (!isMonitoring) return;
+            
+            const elapsed = Math.floor((Date.now() - startTime) / 1000);
+            const minutes = Math.floor(elapsed / 60).toString().padStart(2, '0');
+            const seconds = (elapsed % 60).toString().padStart(2, '0');
+            document.getElementById('duration').textContent = `${minutes}:${seconds}`;
+            
+            setTimeout(updateDuration, 1000);
+        }
+
+        function updateStats() {
+            if (totalChecks > 0) {
+                const rate = Math.round((passChecks / totalChecks) * 100);
+                document.getElementById('passRate').textContent = rate + '%';
+            }
+        }
+
+        // 页面关闭时清理
+        window.addEventListener('beforeunload', () => {
+            if (isMonitoring) {
+                stopMonitoring();
+            }
+        });
+    </script>
+</body>
+</html>
